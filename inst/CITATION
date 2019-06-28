@@ -1,0 +1,13 @@
+citHeader("To cite vcvComp in publication use:")
+
+citEntry(
+	entry="Article",
+	title="Multivariate Comparison of Variance in R",
+	author="Anne Le Maitre and Philipp Mitteroecker",
+	journal="Methods in Ecology and Evolution",
+	year="in press",
+	pages="-",
+	textVersion="Le Maitre, A., and Mitteroecker, P. (in press) Multivariate Comparison of Variance in R. Methods in Ecology and Evolution."
+)
+
+citFooter("As vcvComp is evolving, you may want to cite its version number. Find it with 'help(package=vcvComp)'.")

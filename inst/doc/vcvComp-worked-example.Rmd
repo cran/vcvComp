@@ -1,0 +1,352 @@
+---
+title: 'vcvComp: worked example'
+author: "Anne Le Maitre and Philipp Mitteroecker"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{vcvComp: worked example}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+The `vcvComp` package comprises a data frame (`Tropheus`) of 723 observations of 57 variables extracted from a freely available dataset, downloaded from the Dryad digital repository (https://doi.org/10.5061/dryad.fc02f). The observations correspond to cichlid fishes of the species *Tropheus moorii* (color morphs 'Kaiser' and 'Kirschfleck') and *T. polli* collected from eight locations of Lake Tanganyika (Kerschbaumer et al., 2014). The main numerical variables provided are the 2D Cartesian coordinates of 19 landmarks quantifying the external body morphology of adult fishes (Herler et al., 2010) and the genotypes for 6 microsatellite markers. 
+
+## Case study
+
+To illustrate the application of relative eigenanalysis by means of the `vcvComp` package, we studied variation of body shape within and between different fish populations of the cichlid genus *Tropheus*. We used 511 specimens of the sample from Kerschbaumer et al. (2014), consisting of six populations of the color morph 'Kaiser' of the species *Tropheus moorii*. Three of these populations (IKS3, IKS4, IKS5) live in sympatry with the cichlid species *T. polli*, whereas the three other populations (IKA1, IKA2, IKA3) live alone. As the allopatric and sympatric populations differ in trophic niche and thus presumably also in their selective regime, we investigated if and how they differ in phenotypic variance-covariance structure. We also explored differences in variance pattern between female and male specimens, because these populations show significant sexual dimorphism in mean head shape (cichlids are maternal mouthbrooders; Herler et al., 2010; Kerschbaumer et al., 2014). Finally, we searched for signs of stabilizing and divergent selection among the six *Tropheus* populations by contrasting within- and between-group covariance matrices.
+
+First, we loaded the `vcvComp` package and the data. 
+
+```{r load, echo = TRUE}
+library("vcvComp")
+data("Tropheus")
+```
+
+Five specimens are outliers for landmark 2 and were excluded from the sample. After selecting the subsample, we created a new variable combining population and sex. 
+```{r var_SexPop}
+outliers <- c(18, 56, 155, 351, 624)
+Tropheus.IK <- Tropheus[- outliers, ]
+# Sample reduced to six populations
+Tropheus.IK <- subset(Tropheus.IK, subset = POP.ID %in% levels(POP.ID)[1:6])
+Tropheus.IK$POP.ID <- factor(Tropheus.IK$POP.ID)
+# New variable combining population and sex
+Tropheus.IK$SexPop <- paste(Tropheus.IK$POP.ID, Tropheus.IK$Sex, sep = "_")
+Tropheus.IK$SexPop <- as.factor(Tropheus.IK$SexPop)
+```
+
+The landmark coordinates were extracted to create a matrix. 
+```{r LM}
+PHEN <- as.matrix(Tropheus.IK[which(names(Tropheus.IK) == "X1"):
+                                which(names(Tropheus.IK) == "Y19")])
+rownames(PHEN) <- Tropheus.IK$List_TropheusData_ID
+```
+
+Then, we performed a generalised Procrustes superimposition (Rohlf and Slice, 1990) of the landmark coordinates using the function `gpagen` of the `geomorph` package. 
+```{r GPA}
+library("geomorph")  # load packages geomorph, rgl and RRPP
+# conversion matrix -> array (19 landmarks, 2 dimensions)
+PHEN_array <- arrayspecs(PHEN, p = 19, k = 2)
+# Procrustes superimposition
+phen.gpa <- gpagen(PHEN_array, print.progress = FALSE)
+# conversion array -> matrix of Procrustes coordinates
+proc.coord <- two.d.array(phen.gpa$coords)
+colnames(proc.coord) <- colnames(PHEN)
+```
+
+We reduced the Procrustes shape coordinates to the first five principal components to avoid collinearities  and to guarantee a sufficient excess of cases over variables in the further analyses. 
+```{r PCA}
+phen.pca <- prcomp(proc.coord, rank. = 5, tol = sqrt(.Machine$double.eps))
+pc.scores <- phen.pca$x
+```
+
+## Population comparison
+
+Because the population samples were not balanced regarding sex, we computed the pooled population covariance matrices as unweighted averages of the corresponding male and female covariance matrices.
+```{r Pop vcv}
+S.phen.pooled <- cov.group(pc.scores, groups = Tropheus.IK$POP.ID, sex = Tropheus.IK$Sex)
+```
+
+To explore the heterogeneity of variance-covariance structure in body shape across populations, we performed an ordination analysis of the six pooled within-sex covariance matrices. 
+```{r Pop_PCoA}
+eigen.phen <- mat.sq.dist(S.phen.pooled, dist. = "Riemannian")  # Riemannian distances
+prcoa <- pr.coord(eigen.phen)  # ordination
+prcoa$Variance  # variance explained
+```
+
+The first three principal coordinates together accounted for 88% of the total variance (Fig. 1); this also equals the fraction of summed squared Riemannian distances explained by the summed squared Euclidean distances within the first three principal coordinates. 
+```{r Pop_PCoA_screePlot, fig.height = 3, fig.width = 4, fig.cap = paste("**Figure 1**", "Fraction of variance explained by each principal coordinate in the ordination of the six *Tropheus moorii* populations.")}
+# Visualization of the variance explained by each dimension (fig. 1)
+barplot(prcoa$Variance$exVar, las = 1, col = "darkblue",
+        names.arg = 1:nrow(prcoa$Variance), cex.axis = 0.8, cex  = 0.8,
+        xlab = "Dimensions", ylab = "Variance explained")
+```
+
+The populations living in sympatry (IKS3, IKS4 and IKS5) were separated from the allopatric populations (IKA1, IKA2, IKA3) along the third principal coordinate (Fig. 2).
+```{r Pop_PCoA_ordination, fig.height = 3.8, fig.width = 4.5, fig.cap = paste("**Figure 2**", "Scatterplot of the first three principal coordinates (PCoord) in the ordination of the six *Tropheus moorii* populations. Populations living in sympatry are shown in dark blue, allopatric populations in light blue.")}
+# Visualization of PCo1, PCo2 and PCo3 (fig. 2)
+coul.pop <- c(rep("blue", 3), rep("darkblue", 3))  # colors
+pch.pop <- c(rep(19, 3), rep(15, 3))  # symbols
+pco3d <- c(1, 2, 3)  # dimensions
+xyzlab <- c(paste("PCoord", pco3d[1]), 
+            paste("PCoord", pco3d[2]), 
+            paste("PCoord", pco3d[3]))
+s3d <- scatterplot3d:::scatterplot3d(prcoa$PCoords[, pco3d[1:3]],
+              xlab = xyzlab[1], ylab = xyzlab[2], zlab = xyzlab[3],
+              color = coul.pop, pch = 19, angle = 55,
+              type = "h", lty.hplot = 3, 
+              cex.symbols = 1, cex.axis = 0.8)
+s3d.coords <- s3d$xyz.convert(prcoa$PCoords[, pco3d[1:3]])
+text(s3d.coords$x, s3d.coords$y, 
+     labels = row.names(prcoa$PCoords), 
+     pos = 4, cex = 0.7, col = coul.pop)
+```
+
+To investigate the actual differences in variance-covariance pattern between sympatric and allopatric populations, we compared the populations IKA1 and IKS5, but other pairs of sympatric and allopatric populations led to very similar results. The ML test indicated that the covariance matrices of IKA1 and IKS5 deviate from proportionality at *p* = 0.02.
+```{r IKA1-IKS5_ML_test}
+table(Tropheus.IK$POP.ID)  # sample sizes
+prop.vcv.test(n = c(69,75), S.phen.pooled[,,"IKA1"], S.phen.pooled[,,"IKS5"])  # ML test
+```
+
+The generalized variance of IKA1 was only 18% less than that of IKS5, but the relative PCA showed that the various shape features deviate strongly in their variational properties across populations (Fig. 3). The first relative PC was roughly twice as variable in IKA1 than in IKS5 (first relative eigenvalue was 2.3), whereas the variance of the last relative PC in IKA1 was only half of that in IKS5 (last relative eigenvalue was 0.49).
+```{r IKA1-IKS5_relPCA, fig.height = 3, fig.width = 4, fig.cap = paste("**Figure 3**", "Relative eigenvalues (on a log scale) of the population IKA1 relative to IKS5.")}
+# Ratio of generalized variances of IKA1 and IKS5
+relGV.multi(S.phen.pooled[, , c("IKA1", "IKS5")], logGV = FALSE)
+# Relative PCA = relative eigenanalysis
+relEigen.a1s5 <- relative.eigen(S.phen.pooled[, , "IKA1"], S.phen.pooled[, , "IKS5"])
+relEigen.a1s5$relValues  # relative eigenvalues
+# Visualization of the relative eigenvalues (fig. 3)
+plot(relEigen.a1s5$relValues[1:relEigen.a1s5$q], 
+     log = "y",  las = 1, col = "blue", type = "b", 
+     main = "IKA1 relative to IKS5", cex = 0.8, 
+     cex.main = 1, cex.axis = 0.8, cex.sub = 0.7, 
+     sub = paste("Relative generalized variance =", relEigen.a1s5$relGV), 
+     xlab = NA, ylab = "Relative eigenvalues")
+abline(h = 1)
+```
+
+The shape patterns depicted by each relative eigenvector can be visualized by deformations of the average shape along the positive and the negative directions of the corresponding vector (Fig. 4). Note that when the initial variables are reduced to the first components, as is the case here, the loadings of the eigenvectors must be multiplied by the loadings of the principal components to get shape patterns. 
+```{r IKA1-IKS5_vcvPattern, fig.height = 3, fig.width = 7, fig.cap = paste("**Figure 4**", "Visualization as thin-plate spline (TPS) deformation grids (Bookstein, 1991) of the shape pattern corresponding to the first relative PC, which has the maximal excess of variance in IKA1 relative to IKS5.")}
+# Shape patterns corresponding to the relative eigenvectors
+a1s5 <- c(which(Tropheus.IK$POP.ID %in% "IKA1"), 
+               which(Tropheus.IK$POP.ID %in% "IKS5"))  # specimens
+REF.A1S5 <- mshape(phen.gpa$coords[, , a1s5])  # average shape
+A.A1S5 <- arrayspecs(t(phen.pca$rotation %*% relEigen.a1s5$relVectors), 
+                     p = 19, k = 2)  # loadings
+# Graphical parameters
+WF <- cbind(c(1, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9, 1, 12, 14, 14), 
+            c(19, 18, 18, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 15))
+gp3 <- gridPar(grid.col = "grey", tar.link.col = "blue", 
+               tar.pt.size = 0.7, tar.pt.bg = "blue")
+# Visualization of the first dimension (fig. 4)
+par(new = FALSE, mfrow = c(1, 2), mar = c(0.5, 0.5, 0.5, 0.5))
+plotRefToTarget(REF.A1S5, (REF.A1S5 - 0.01 * A.A1S5[, , 1]), 
+                mag = 7, method = "TPS", gridPar = gp3, links = WF)
+title(main = "-", line = -1)
+plotRefToTarget(REF.A1S5, (REF.A1S5 + 0.01 * A.A1S5[, , 1]), 
+                mag = 7, method = "TPS", gridPar = gp3, links = WF)
+title(main = "+", line = -1)
+title("First relative eigenvector", outer = TRUE, line = - 1)
+```
+
+The shape features captured by relative PC 1 were head shape, relative eye size, and body depth (maximum distance between dorsal and ventral parts); these were the features with maximal excess of variance in allopatric populations relative to sympatric populations (Fig. 4). Or in other words, these were the shape feature maximally canalized in the populations living in sympatry. 
+
+In Lake Tanganyika, allopatric populations of *Tropheus moorii* live in the whole water column, whereas populations in sympatry with *T. polli* usually are forced to live at greater water depth (Kerschbaumer et al., 2014). The broader trophic niche and larger environmental heterogeneity in allopatric populations may account for the larger variance in body depth and head shape, but the higher competition and harder living conditions in sympatric populations may also impose a stronger stabilizing selection regime than in allopatric populations.
+
+## Comparison between sexes
+
+We separated males and females and performed a principal coordinates analysis of the 12 sex-specific variance-covariance matrices in order to investigate deviations in variance-covariance structure between the sexes.  
+```{r Sex_Pop_PCoA}
+S.phen.mf <- cov.group(pc.scores, groups = Tropheus.IK$SexPop)  # covariance matrices
+eigen.phen.mf <- mat.sq.dist(S.phen.mf, dist. = "Riemannian")  # Riemannian distances
+prcoa.mf <- pr.coord(eigen.phen.mf)  # ordination
+prcoa.mf$Variance  # variance explained
+```
+
+The first two components together accounted for 62% of total variance (Fig. 5) and showed that for all populations, except IKA3, males had higher values than females for the first principal coordinate (Fig. 6).
+```{r Sex_Pop_PCoA_screePlot, fig.height = 3, fig.width = 4, fig.cap = paste("**Figure 5**", "Fraction of variance explained by each principal coordinate of the 12 sex-specific covariance matrices.")}
+# Visualization of the variance explained by each dimension (fig. 5)
+barplot(prcoa.mf$Variance$exVar, las = 1, col = "darkblue", 
+        names.arg = 1:nrow(prcoa.mf$Variance), cex.axis = 0.8, cex  = 0.8,
+        xlab = "Dimensions", ylab = "Variance explained")
+```
+
+```{r Sex_Pop_PCoA_ordination, fig.height = 3.5, fig.width = 6, fig.cap = paste("**Figure 6**", "Principal coordinates ordination of the 12 sex-specific covariance matrices. Males in blue, females in red. Populations living in sympatry with *Tropheus polli* in dark colors.")}
+# Visualization of PCo1 and PCo2 (fig. 6)
+coul.mf <- c(rep(c("red", "blue"), 3), rep(c("darkred", "darkblue"), 3))  # colors
+pch.mf <- c(rep(19, 6), rep(15, 6))  # symbols
+pco <- c(1, 2)  # dimensions
+plot(prcoa.mf$PCoords[, pco[1]], prcoa.mf$PCoords[, pco[2]], 
+     xlab = paste("Principal coordinate", pco[1]), 
+     ylab = paste("Principal coordinate", pco[2]), 
+     asp = 1,  las = 1, pch = pch.mf, col = coul.mf, cex.axis = 0.8)
+abline(h = 0) ; abline(v = 0)
+text(prcoa.mf$PCoords[, pco[1]], prcoa.mf$PCoords[, pco[2]], 
+     labels = rownames(prcoa.mf$PCoords), 
+     adj = 1.5, cex = 0.6, col = coul.mf)
+```
+
+To explore this shared sex difference in variance-covariance pattern, we perform a relative PCA of the females relative to the males of IKA1. 
+```{r Sex_IKA1_relPCA}
+pop.ika1 <- grep("IKA1", levels(Tropheus.IK$SexPop)) 
+relEigen.ika1 <- relative.eigen(S.phen.mf[, , pop.ika1[1]], S.phen.mf[, , pop.ika1[2]])
+relEigen.ika1$relGV  # ratio of generalized variances
+relEigen.ika1$relValues  # relative eigenvalues
+```
+
+Overall, females were approximately half as variable as males (ratio of generalized eigenvalues was 0.57), but pooling over all dimensions was again misleading here. In fact, the first relative PC was 4.6 times more variable in females than in males, whereas the other dimensions were all more variable in males (Fig. 7).
+```{r Sex_IKA1_relVal, fig.height = 3, fig.width = 4, fig.cap = paste("**Figure 7**", "Relative eigenvalues (maximal ratios of variance) of females relative to males for the population IKA1.")}
+# Visualization of the relative eigenvalues (fig. 7)
+plot(relEigen.ika1$relValues[1:relEigen.ika1$q], 
+     log = "y",  las = 1, col = "blue", type = "b", 
+     main = "IKA1: females / males", cex.main = 1, cex.axis = 0.8, 
+     xlab = NA, ylab = "Relative eigenvalues")
+abline(h = 1)
+```
+
+The first relative PC mainly corresponded to the relative size of the head, whereas the last three relative PCs were all related to the shape and relative orientation of the head and mouth (Fig. 8). 
+```{r Sex_IKA1_vcvPattern, fig.height = 5, fig.width = 7, fig.cap = paste("**Figure 8**", "Visualization as thin-plate spline (TPS) deformation grids (Bookstein, 1991) of the shape patterns corresponding to the first relative PC, which has the maximal excess of variance in females relative to males for the population IKA1 (*top*), and the last relative PC, which has the maximal excess of variance in males relative to females (*bottom*).")}
+# Population IKA1: average shape and loadings
+ika1 <- which(Tropheus.IK$POP.ID %in% "IKA1")  # specimens
+REF.IKA1 <- mshape(phen.gpa$coords[, , ika1])  # average shape
+A.IKA1 <- arrayspecs(t(phen.pca$rotation %*% relEigen.ika1$relVectors), 
+                     p = 19, k = 2)  # loadings
+# Graphical parameters
+WF <- cbind(c(1, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9, 1, 12, 14, 14), 
+            c(19, 18, 18, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 15))
+gp3 <- gridPar(grid.col = "grey", tar.link.col = "blue", 
+               tar.pt.size = 0.7, tar.pt.bg = "blue")
+par(new = FALSE, mfrow = c(2, 2), mar = c(0.5, 0.5, 1, 0.5))
+# Visualization of the first dimension (fig. 8: top)
+plotRefToTarget(REF.IKA1, (REF.IKA1 - 0.01 * A.IKA1[, , 1]), 
+                mag = 7, method = "TPS", gridPar = gp3, links = WF)
+title(main = "-", line = - 1)
+plotRefToTarget(REF.IKA1, (REF.IKA1 + 0.01 * A.IKA1[, , 1]), 
+                mag = 7, method = "TPS", gridPar = gp3, links = WF)
+title(main = "+", line = - 1)
+title("First relative eigenvector", outer = TRUE, line = - 1)
+# Visualization of the last dimension (fig. 8: bottom)
+plotRefToTarget(REF.IKA1, (REF.IKA1 - 0.01 * A.IKA1[, , 5]), 
+                mag = 7, method = "TPS", gridPar = gp3, links = WF)
+title(main = "-", line = - 1)
+plotRefToTarget(REF.IKA1, (REF.IKA1 + 0.01 * A.IKA1[, , 5]), 
+                mag = 7, method = "TPS", gridPar = gp3, links = WF)
+title(main = "+", line = - 1)
+title("Last relative eigenvector", outer = TRUE, line = -16)
+```
+
+Cichlids are mouth brooders and females typically have a larger head and mouth than males. This pattern of sexual dimorphism in body shape was also found for the present *Tropheus moorii* sample (Herler et al., 2010; Kerschbaumer et al., 2014). The increased variance in relative head size likely is a direct consequence of the enlarged head in females, whereas other aspects of head morphology, such as the relative position and orientation of the mouth, seems to be more canalized in females than in males.
+
+## Stabilizing versus divergent selection of cichlid body shape
+
+Under idealized assumptions, the expected amount of phenotypic change due to genetic drift is proportional to the amount of additive genetic variation in the ancestral population. Extending this model of neutral evolution to multiple traits leads to the expectation that the between-group covariance matrix for a set of related populations is proportional to the additive genetic covariance matrix of their common ancestral population (Lande, 1979). This rational has inspired statistical tests for natural selection by contrasting the covariance matrix of population means with the pooled phenotypic within-population covariance matrix (as an estimate of the ancestral genetic covariance matrix; e.g. Martin et al., 2008): deviations from proportionality are signs of stabilizing or divergent selection. Most of these approaches, however, only rely on statistical significance tests of proportionality of the between- and within-population covariance matrices (**B** and **W**, respectively). Relative PCA ideally complements these approaches as an exploratory tool to identify the specific trait combinations that deviate from the null model of neutral evolution (Bookstein and Mitteroecker, 2014). If both divergent and stabilizing selection acted in a set of populations, the first relative PCs of **B** with respect to **W** will reveal the trait combinations that were affected by divergent selection (the features with maximal between-population variance relative to within-population variance), and the last relative PCs will show the trait combinations under stabilizing selection (least between-population variance relative to within-population variance).
+
+We computed **B** and **W** (pooled by sex) for the *Tropheus* populations based on the first five PCs of the full Procrustes data. As we have only six populations in this example, **B** is estimated with great uncertainty and also the chi-square approximation in the proportionality test is critical; results have to be interpreted with care. The ML test suggested a deviation from proportionality between **B** and **W** (*p* = 0.034) and thus the action of selective forces.
+```{r BW_ML_test}
+# Computation of B and W (pooled by sex)
+B <- cov.B(pc.scores, groups = Tropheus.IK$POP.ID, sex = Tropheus.IK$Sex)
+W <- cov.W(pc.scores, groups = Tropheus.IK$POP.ID, sex = Tropheus.IK$Sex)
+# Proportionality test between B and W = ML test
+prop.vcv.test(n = c(6, 511), B, W)  # 6 groups, 511 specimens
+```
+
+However, this test does not specify the *magnitude* of deviation from proportionality, and especially with the small number of populations in this example, the interpretation of the *p*-value alone is not sufficient. We thus performed an ordination of the six population covariance matrices (pooled by sex), together with **W** and **B** (scaled to fit **W** using the mean of their relative eigenvalues).
+```{r BW_Pop_PCoA}
+Bsc <- B / scaling.BW(B, W)  # scale B to W
+# Create an array of group covariance matrices, B and W
+S.bw <- array(c(S.phen.pooled, W, Bsc), 
+              dim = c(dim(S.phen.pooled)[[1]], 
+                      dim(S.phen.pooled)[[2]], 
+                      dim(S.phen.pooled)[[3]] + 2))
+dimnames(S.bw) <- list(dimnames(S.phen.pooled)[[1]], 
+                       dimnames(S.phen.pooled)[[2]], 
+                       c(dimnames(S.phen.pooled)[[3]], "W", "B"))
+# Ordination
+eigen.phen.bw <- mat.sq.dist(S.bw, dist. = "Riemannian")
+prcoa.bw <- pr.coord(eigen.phen.bw)
+```
+
+Relative to the heterogeneity of population covariance matrices, **B** clearly deviates from **W** along the first principal coordinate (Fig. 9). The interpretation of the relative PCs of **B** and **W** thus seems warranted. 
+```{r BW_Pop_PCoA_ordination, fig.height = 3.9, fig.width = 5, fig.cap = paste("**Figure 9**", "Principal coordinates ordination of the six populations (males and females pooled), along with their between-group (**B**) and their within-group (**W**) covariance matrices.")}
+# Visualization of PCo1, PCo2 and PCo3 (fig. 9)
+coul.bw <- c(coul.pop, rep("darkgreen", 2))  # colors
+pco3d <- c(1, 2, 3)  # dimensions
+xyzlab <- c(paste("PCoord", pco3d[1]), 
+            paste("PCoord", pco3d[2]), 
+            paste("PCoord", pco3d[3]))
+s3d <- scatterplot3d:::scatterplot3d(prcoa.bw$PCoords[, pco3d[1:3]],
+              xlab = xyzlab[1], ylab = xyzlab[2], zlab = xyzlab[3],
+              color = coul.bw, pch = 19, angle = 55,
+              type = "h", lty.hplot = 3, 
+              cex.symbols = 1, cex.axis = 0.8)
+s3d.coords <- s3d$xyz.convert(prcoa.bw$PCoords[, pco3d[1:3]])
+text(s3d.coords$x, s3d.coords$y, labels = row.names(prcoa.bw$PCoords), 
+     pos = 4, cex = 0.7, col = coul.bw)
+```
+
+We performed a relative PCA of **B** with respect to **W** (Fig. 10). The first relative eigenvalue is more than 5 times larger than the second one, which is significant at *p* < 0.05, and similarly for the last relative eigenvalue. This supports an interpretation of the first and last relative PC, even though the absolute relative eigenvalues cannot be evolutionarily interpreted without knowing the variance ratio expected under neutral evolution, which depends on the number of generations since divergence as well as effective population size (Lande, 1979). One way to estimate this threshold is based on genetic data using the $F_{ST}$ statistic (Holsinger et al., 2009). Under pure genetic drift, $\mathbf{B}=F_{ST}/(1-F_{ST})\mathbf{W}$ (Lynch and Walsh, 1998; Martin et al., 2008). Kerschbaumer et al. (2014) reported $F_{ST}$ values for these populations ranging from 0.033 to 0.085, which translates into ratios of between- and within-population variance of 0.034-0.093. The first relative eigenvalue (2.06) clearly exceeded this threshold and suggests strong divergent selection. The last relative eigenvalue (0.025) may indicate weak stabilizing selection. 
+```{r BW_relPCA, fig.height = 3, fig.width = 4, fig.cap = paste("**Figure 10**", "Relative eigenvalues of the between-group covariance matrix versus the within-group covariance matrix for the six *Tropheus* populations.")}
+# Relative PCA of B with respect to to W
+relEigenBW <- relative.eigen(B, W)
+relEigenBW$relValues  # relative eigenvalues
+# Test differences between two successive relative eigenvalues
+eigen.test(n = c(6, 511), relValues = relEigenBW$relValues)
+# Visualization of the relative eigenvalues (fig. 10)
+plot(relEigenBW$relValues[1:relEigenBW$q], 
+     log = "y",  las = 1, col = "blue", type = "b",
+     main = "B relative to W", cex.main = 1, cex.axis = 0.8, 
+     xlab = NA, ylab = "Relative eigenvalues")
+abline(h = 1)
+```
+
+The first relative PC corresponded to overall body depth and the positions of caudal, dorsal and ventral fins (Fig. 11). Apparently, these features, which determine the hydrodynamics and swimming ability of the fish, were under strong divergent selection in the studied *Tropheus* populations: their inter-population variance strongly exceeds the variation expected for neutral evolution. 
+
+The shape pattern corresponding to the last relative eigenvector mainly involved the shape of the head, especially the position and orientation of the mouth (Fig. 11). These features, which crucially affect feeding performance, likely were under stabilizing selection in the *Tropheus* populations. This is supported by our finding that females show little variation in mouth position and orientation despite a large and variable head size (Fig. 8). 
+```{r BW_vcvPattern, fig.height = 5, fig.width = 7, fig.cap = paste("**Figure 11**", "Visualization of the shape patterns corresponding to the variance within populations (*top*), and the last relative PC, which has the maximal excess of variance within populations relative to that between populations (*bottom*).")}
+# Shape patterns corresponding to the relative eigenvectors
+REF <- mshape(phen.gpa$coords)  # average shape
+A <- arrayspecs(t(phen.pca$rotation %*% relEigenBW$relVectors), p=19, k=2)  # loadings
+# Graphical parameters
+WF <- cbind(c(1, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9, 1, 12, 14, 14), 
+            c(19, 18, 18, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 15))
+gp3 <- gridPar(grid.col = "grey", tar.link.col = "blue", 
+               tar.pt.size = 0.7, tar.pt.bg = "blue")
+par(new = FALSE, mfrow = c(2, 2), mar = c(0.5, 0.5, 1, 0.5))
+# Visualization of the first dimension (fig. 11: top)
+plotRefToTarget(REF, (REF - 0.01 * A[, , 1]), 
+                mag = 7, method = "TPS", gridPar = gp3, links = WF)
+title(main = "-", line = - 1)
+plotRefToTarget(REF, (REF + 0.01 * A[, , 1]), 
+                mag = 7, method = "TPS", gridPar = gp3, links = WF)
+title(main = "+", line = - 1)
+title("First relative eigenvector", outer = TRUE, line = - 1)
+# Visualization of the last dimension (fig. 11: bottom)
+plotRefToTarget(REF, (REF - 0.01 * A[, , 5]), 
+                mag = 7, method = "TPS", gridPar = gp3, links = WF)
+title(main = "-", line = - 1)
+plotRefToTarget(REF, (REF + 0.01 * A[, , 5]), 
+                mag = 7, method = "TPS", gridPar = gp3, links = WF)
+title(main = "+", line = - 1)
+title("Last relative eigenvector", outer = TRUE, line = - 16)
+```
+
+## References
+
+Bookstein F (1991). *Morphometric tools for landmark data: geometry and biology.* Cambridge University Press, Cambridge (UK); New York. 
+
+Bookstein F, Mitteroecker P (2014) Comparing covariance matrices by relative eigenanalysis, with applications to organismal biology. *Evolutionary Biology 41*: 336--350. https://doi.org/10.1007/s11692-013-9260-5 
+
+Herler J, Kerschbaumer M, Mitteroecker P, et al. (2010) Sexual dimorphism and population divergence in the Lake Tanganyika cichlid fish genus *Tropheus*. *Frontiers in Zoology 7*:4. https://doi.org/10.1186/1742-9994-7-4 
+
+Holsinger KE, Weir BS (2009) Genetics in geographically structured populations: defining, estimating and interpreting $F_{ST}$. *Nature Review Genetics 10(9)*:639--650. https://doi.org/10.1038/nrg2611 
+
+Kerschbaumer M, Mitteroecker P, Sturmbauer C (2014) Evolution of body shape in sympatric versus non-sympatric Tropheus populations of Lake Tanganyika. *Heredity 112(2)*: 89--98. https://doi.org/10.1038/hdy.2013.78 
+
+Kerschbaumer M, Mitteroecker P, Sturmbauer C (2013) Data from: Evolution of body shape in sympatric versus non-sympatric *Tropheus* populations of Lake Tanganyika. *Dryad Digital Repository*. https://doi.org/10.5061/dryad.fc02f 
+
+Lande R (1979) Quantitative genetic analysis of multivariate evolution, applied to brain:body size allometry. *Evolution 33(1 part 2)*:402--416.  https://doi.org/10.1111/j.1558-5646.1979.tb04694.x 
+
+Lynch M, Walsh B (1998) *Genetics and Analysis of Quantitative Traits*. Sinauer Associates, Sunderland, MA. 
+
+Martin G, Chapuis E, Goudet J (2008) Multivariate $Q_{ST}$-$F_{ST}$ comparisons: a neutrality test for the evolution of the g matrix in structured populations. *Genetics 180(4)*:2135--49. https://doi.org/10.1534/genetics.107.080820 
+
+Rohlf FJ, Slice DE (1990) Extensions of the procrustes method for the optimal superimposition of landmarks. *Systematic Zoology 39(1)*:40--59. https://doi.org/10.2307/2992207 
