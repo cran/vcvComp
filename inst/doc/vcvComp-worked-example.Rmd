@@ -53,7 +53,7 @@ proc.coord <- two.d.array(phen.gpa$coords)
 colnames(proc.coord) <- colnames(PHEN)
 ```
 
-We reduced the Procrustes shape coordinates to the first five principal components to avoid collinearities  and to guarantee a sufficient excess of cases over variables in the further analyses. 
+We reduced the Procrustes shape coordinates to the first five principal components to avoid collinearities and to guarantee a sufficient excess of cases over variables in the further analyses. 
 ```{r PCA}
 phen.pca <- prcomp(proc.coord, rank. = 5, tol = sqrt(.Machine$double.eps))
 pc.scores <- phen.pca$x
@@ -90,7 +90,7 @@ pco3d <- c(1, 2, 3)  # dimensions
 xyzlab <- c(paste("PCoord", pco3d[1]), 
             paste("PCoord", pco3d[2]), 
             paste("PCoord", pco3d[3]))
-s3d <- scatterplot3d:::scatterplot3d(prcoa$PCoords[, pco3d[1:3]],
+s3d <- scatterplot3d::scatterplot3d(prcoa$PCoords[, pco3d[1:3]],
               xlab = xyzlab[1], ylab = xyzlab[2], zlab = xyzlab[3],
               color = coul.pop, pch = 19, angle = 55,
               type = "h", lty.hplot = 3, 
@@ -273,7 +273,7 @@ pco3d <- c(1, 2, 3)  # dimensions
 xyzlab <- c(paste("PCoord", pco3d[1]), 
             paste("PCoord", pco3d[2]), 
             paste("PCoord", pco3d[3]))
-s3d <- scatterplot3d:::scatterplot3d(prcoa.bw$PCoords[, pco3d[1:3]],
+s3d <- scatterplot3d::scatterplot3d(prcoa.bw$PCoords[, pco3d[1:3]],
               xlab = xyzlab[1], ylab = xyzlab[2], zlab = xyzlab[3],
               color = coul.bw, pch = 19, angle = 55,
               type = "h", lty.hplot = 3, 
@@ -285,7 +285,7 @@ text(s3d.coords$x, s3d.coords$y, labels = row.names(prcoa.bw$PCoords),
 
 We performed a relative PCA of **B** with respect to **W** (Fig. 10). The first relative eigenvalue is more than 5 times larger than the second one, which is significant at *p* < 0.05, and similarly for the last relative eigenvalue. This supports an interpretation of the first and last relative PC, even though the absolute relative eigenvalues cannot be evolutionarily interpreted without knowing the variance ratio expected under neutral evolution, which depends on the number of generations since divergence as well as effective population size (Lande, 1979). One way to estimate this threshold is based on genetic data using the $F_{ST}$ statistic (Holsinger et al., 2009). Under pure genetic drift, $\mathbf{B}=F_{ST}/(1-F_{ST})\mathbf{W}$ (Lynch and Walsh, 1998; Martin et al., 2008). Kerschbaumer et al. (2014) reported $F_{ST}$ values for these populations ranging from 0.033 to 0.085, which translates into ratios of between- and within-population variance of 0.034-0.093. The first relative eigenvalue (2.06) clearly exceeded this threshold and suggests strong divergent selection. The last relative eigenvalue (0.025) may indicate weak stabilizing selection. 
 ```{r BW_relPCA, fig.height = 3, fig.width = 4, fig.cap = paste("**Figure 10**", "Relative eigenvalues of the between-group covariance matrix versus the within-group covariance matrix for the six *Tropheus* populations.")}
-# Relative PCA of B with respect to to W
+# Relative PCA of B with respect to W
 relEigenBW <- relative.eigen(B, W)
 relEigenBW$relValues  # relative eigenvalues
 # Test differences between two successive relative eigenvalues

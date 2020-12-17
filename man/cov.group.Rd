@@ -29,22 +29,18 @@ the average of the covariance matrix of males and the covariance matrix of femal
 \examples{
 
 # Data matrix of 2D landmark coordinates
-data("Tropheus")
-PHEN <- as.matrix(Tropheus[which(names(Tropheus) == "X1"):which(names(Tropheus) == "Y19")])
-
-# Procrustes superimposition
-library("geomorph")
-PHEN_array <- arrayspecs(PHEN, p = 19, k = 2)
-phen.gpa <- gpagen(PHEN_array, print.progress = FALSE)
-proc.coord <- two.d.array(phen.gpa$coords)
+data("Tropheus.IK.coord")
+coords <- which(names(Tropheus.IK.coord) == "X1"):which(names(Tropheus.IK.coord) == "Y19")
+proc.coord <- as.matrix(Tropheus.IK.coord[coords])
 
 # Covariance matrix of each population
-S.phen.pop <- cov.group(proc.coord, groups = Tropheus$POP.ID)
+S.phen.pop <- cov.group(proc.coord, groups = Tropheus.IK.coord$POP.ID)
 
 # Covariance matrix of each population, pooled by sex
-S.phen.pooled <- cov.group(proc.coord, groups = Tropheus$POP.ID, sex = Tropheus$Sex)
+S.phen.pooled <- cov.group(proc.coord,
+groups = Tropheus.IK.coord$POP.ID, sex = Tropheus.IK.coord$Sex)
 
 }
 \seealso{
-\code{\link[stats]{cov}} and \code{\link[base]{scale}}
+\code{\link[stats:cor]{cov}} and \code{\link[base]{scale}}
 }

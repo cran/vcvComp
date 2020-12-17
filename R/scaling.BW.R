@@ -17,18 +17,13 @@
 #' @examples
 #'
 #' # Data matrix of 2D landmark coordinates
-#' data("Tropheus")
-#' PHEN <- as.matrix(Tropheus[which(names(Tropheus) == "X1"):which(names(Tropheus) == "Y19")])
-#'
-#' # Procrustes superimposition
-#' library("geomorph")
-#' PHEN_array <- arrayspecs(PHEN, p = 19, k = 2)
-#' phen.gpa <- gpagen(PHEN_array, print.progress = FALSE)
-#' proc.coord <- two.d.array(phen.gpa$coords)
+#' data("Tropheus.IK.coord")
+#' coords <- which(names(Tropheus.IK.coord) == "X1"):which(names(Tropheus.IK.coord) == "Y19")
+#' proc.coord <- as.matrix(Tropheus.IK.coord[coords])
 #'
 #' # Between-group (B) and within-group (W) covariance matrices for all populations
-#' B <- cov.B(proc.coord, groups = Tropheus$POP.ID, sex = Tropheus$Sex)
-#' W <- cov.W(proc.coord, groups = Tropheus$POP.ID, sex = Tropheus$Sex)
+#' B <- cov.B(proc.coord, groups = Tropheus.IK.coord$POP.ID, sex = Tropheus.IK.coord$Sex)
+#' W <- cov.W(proc.coord, groups = Tropheus.IK.coord$POP.ID, sex = Tropheus.IK.coord$Sex)
 #'
 #' # ML estimate of the scaling factor between B and W
 #' sc <- scaling.BW(B, W)

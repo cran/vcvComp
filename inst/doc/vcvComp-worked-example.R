@@ -1,8 +1,8 @@
-## ----load, echo = TRUE---------------------------------------------------
+## ----load, echo = TRUE--------------------------------------------------------
 library("vcvComp")
 data("Tropheus")
 
-## ----var_SexPop----------------------------------------------------------
+## ----var_SexPop---------------------------------------------------------------
 outliers <- c(18, 56, 155, 351, 624)
 Tropheus.IK <- Tropheus[- outliers, ]
 # Sample reduced to six populations
@@ -12,12 +12,12 @@ Tropheus.IK$POP.ID <- factor(Tropheus.IK$POP.ID)
 Tropheus.IK$SexPop <- paste(Tropheus.IK$POP.ID, Tropheus.IK$Sex, sep = "_")
 Tropheus.IK$SexPop <- as.factor(Tropheus.IK$SexPop)
 
-## ----LM------------------------------------------------------------------
+## ----LM-----------------------------------------------------------------------
 PHEN <- as.matrix(Tropheus.IK[which(names(Tropheus.IK) == "X1"):
                                 which(names(Tropheus.IK) == "Y19")])
 rownames(PHEN) <- Tropheus.IK$List_TropheusData_ID
 
-## ----GPA-----------------------------------------------------------------
+## ----GPA----------------------------------------------------------------------
 library("geomorph")  # load packages geomorph, rgl and RRPP
 # conversion matrix -> array (19 landmarks, 2 dimensions)
 PHEN_array <- arrayspecs(PHEN, p = 19, k = 2)
@@ -27,14 +27,14 @@ phen.gpa <- gpagen(PHEN_array, print.progress = FALSE)
 proc.coord <- two.d.array(phen.gpa$coords)
 colnames(proc.coord) <- colnames(PHEN)
 
-## ----PCA-----------------------------------------------------------------
+## ----PCA----------------------------------------------------------------------
 phen.pca <- prcomp(proc.coord, rank. = 5, tol = sqrt(.Machine$double.eps))
 pc.scores <- phen.pca$x
 
-## ----Pop vcv-------------------------------------------------------------
+## ----Pop vcv------------------------------------------------------------------
 S.phen.pooled <- cov.group(pc.scores, groups = Tropheus.IK$POP.ID, sex = Tropheus.IK$Sex)
 
-## ----Pop_PCoA------------------------------------------------------------
+## ----Pop_PCoA-----------------------------------------------------------------
 eigen.phen <- mat.sq.dist(S.phen.pooled, dist. = "Riemannian")  # Riemannian distances
 prcoa <- pr.coord(eigen.phen)  # ordination
 prcoa$Variance  # variance explained
@@ -53,7 +53,7 @@ pco3d <- c(1, 2, 3)  # dimensions
 xyzlab <- c(paste("PCoord", pco3d[1]), 
             paste("PCoord", pco3d[2]), 
             paste("PCoord", pco3d[3]))
-s3d <- scatterplot3d:::scatterplot3d(prcoa$PCoords[, pco3d[1:3]],
+s3d <- scatterplot3d::scatterplot3d(prcoa$PCoords[, pco3d[1:3]],
               xlab = xyzlab[1], ylab = xyzlab[2], zlab = xyzlab[3],
               color = coul.pop, pch = 19, angle = 55,
               type = "h", lty.hplot = 3, 
@@ -63,7 +63,7 @@ text(s3d.coords$x, s3d.coords$y,
      labels = row.names(prcoa$PCoords), 
      pos = 4, cex = 0.7, col = coul.pop)
 
-## ----IKA1-IKS5_ML_test---------------------------------------------------
+## ----IKA1-IKS5_ML_test--------------------------------------------------------
 table(Tropheus.IK$POP.ID)  # sample sizes
 prop.vcv.test(n = c(69,75), S.phen.pooled[,,"IKA1"], S.phen.pooled[,,"IKS5"])  # ML test
 
@@ -104,7 +104,7 @@ plotRefToTarget(REF.A1S5, (REF.A1S5 + 0.01 * A.A1S5[, , 1]),
 title(main = "+", line = -1)
 title("First relative eigenvector", outer = TRUE, line = - 1)
 
-## ----Sex_Pop_PCoA--------------------------------------------------------
+## ----Sex_Pop_PCoA-------------------------------------------------------------
 S.phen.mf <- cov.group(pc.scores, groups = Tropheus.IK$SexPop)  # covariance matrices
 eigen.phen.mf <- mat.sq.dist(S.phen.mf, dist. = "Riemannian")  # Riemannian distances
 prcoa.mf <- pr.coord(eigen.phen.mf)  # ordination
@@ -130,7 +130,7 @@ text(prcoa.mf$PCoords[, pco[1]], prcoa.mf$PCoords[, pco[2]],
      labels = rownames(prcoa.mf$PCoords), 
      adj = 1.5, cex = 0.6, col = coul.mf)
 
-## ----Sex_IKA1_relPCA-----------------------------------------------------
+## ----Sex_IKA1_relPCA----------------------------------------------------------
 pop.ika1 <- grep("IKA1", levels(Tropheus.IK$SexPop)) 
 relEigen.ika1 <- relative.eigen(S.phen.mf[, , pop.ika1[1]], S.phen.mf[, , pop.ika1[2]])
 relEigen.ika1$relGV  # ratio of generalized variances
@@ -173,14 +173,14 @@ plotRefToTarget(REF.IKA1, (REF.IKA1 + 0.01 * A.IKA1[, , 5]),
 title(main = "+", line = - 1)
 title("Last relative eigenvector", outer = TRUE, line = -16)
 
-## ----BW_ML_test----------------------------------------------------------
+## ----BW_ML_test---------------------------------------------------------------
 # Computation of B and W (pooled by sex)
 B <- cov.B(pc.scores, groups = Tropheus.IK$POP.ID, sex = Tropheus.IK$Sex)
 W <- cov.W(pc.scores, groups = Tropheus.IK$POP.ID, sex = Tropheus.IK$Sex)
 # Proportionality test between B and W = ML test
 prop.vcv.test(n = c(6, 511), B, W)  # 6 groups, 511 specimens
 
-## ----BW_Pop_PCoA---------------------------------------------------------
+## ----BW_Pop_PCoA--------------------------------------------------------------
 Bsc <- B / scaling.BW(B, W)  # scale B to W
 # Create an array of group covariance matrices, B and W
 S.bw <- array(c(S.phen.pooled, W, Bsc), 
@@ -201,7 +201,7 @@ pco3d <- c(1, 2, 3)  # dimensions
 xyzlab <- c(paste("PCoord", pco3d[1]), 
             paste("PCoord", pco3d[2]), 
             paste("PCoord", pco3d[3]))
-s3d <- scatterplot3d:::scatterplot3d(prcoa.bw$PCoords[, pco3d[1:3]],
+s3d <- scatterplot3d::scatterplot3d(prcoa.bw$PCoords[, pco3d[1:3]],
               xlab = xyzlab[1], ylab = xyzlab[2], zlab = xyzlab[3],
               color = coul.bw, pch = 19, angle = 55,
               type = "h", lty.hplot = 3, 
@@ -211,7 +211,7 @@ text(s3d.coords$x, s3d.coords$y, labels = row.names(prcoa.bw$PCoords),
      pos = 4, cex = 0.7, col = coul.bw)
 
 ## ----BW_relPCA, fig.height = 3, fig.width = 4, fig.cap = paste("**Figure 10**", "Relative eigenvalues of the between-group covariance matrix versus the within-group covariance matrix for the six *Tropheus* populations.")----
-# Relative PCA of B with respect to to W
+# Relative PCA of B with respect to W
 relEigenBW <- relative.eigen(B, W)
 relEigenBW$relValues  # relative eigenvalues
 # Test differences between two successive relative eigenvalues

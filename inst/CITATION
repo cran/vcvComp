@@ -5,9 +5,11 @@ citEntry(
 	title="Multivariate Comparison of Variance in R",
 	author="Anne Le Maitre and Philipp Mitteroecker",
 	journal="Methods in Ecology and Evolution",
-	year="in press",
-	pages="-",
-	textVersion="Le Maitre, A., and Mitteroecker, P. (in press) Multivariate Comparison of Variance in R. Methods in Ecology and Evolution."
+	year="2019",
+	volume="10",
+  number="9",
+  pages="1380--1392",
+	textVersion="Le Maitre, A., and Mitteroecker, P. (2019) Multivariate Comparison of Variance in R. Methods in Ecology and Evolution, 10(9): 1380--1392. https://doi.org/10.1111/2041-210X.13253"
 )
 
 citFooter("As vcvComp is evolving, you may want to cite its version number. Find it with 'help(package=vcvComp)'.")

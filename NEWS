@@ -1,0 +1,11 @@
+CHANGES IN VCVCOMP VERSION 1.0.2
+
+  NEW FEATURES
+    o cov.W now allows to weight the within-group covariance matrices by the sample size
+    o Added the data frame Tropheus.IK.coord, a subset of the data frame Tropheus for 6 populations only, with Procrustes aligned coordinates instead of raw coordinates
+
+  OTHER CHANGES
+    o Changed the examples of all functions to use the data frame with Procrustes aligned coordinates, instead of the raw coordinates
+    o Added rownames and colnames for the output of col.B
+    o Replaced two occurences of ::: by :: in the vignette
+    o Added two references and related DOIs in the DESCRIPTION file

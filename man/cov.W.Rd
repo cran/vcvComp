@@ -4,7 +4,7 @@
 \alias{cov.W}
 \title{Within-group covariance matrix}
 \usage{
-cov.W(X, groups, sex = NULL)
+cov.W(X, groups, sex = NULL, weighted = FALSE)
 }
 \arguments{
 \item{X}{a data matrix with variables in columns and group names as row names}
@@ -13,6 +13,9 @@ cov.W(X, groups, sex = NULL)
 
 \item{sex}{NULL (default). A character / factor vector containing sex variable,
 to remove sexual dimorphism by averaging males and females in each group}
+
+\item{weighted}{logical. If FALSE (default), the average of all the within-group covariance matrices is used.
+If TRUE, the within-group covariance matrices are weighted by their sample size.}
 }
 \value{
 The pooled within-group covariance matrix
@@ -25,22 +28,20 @@ the average of the covariance matrix of males and the covariance matrix of femal
 \examples{
 
 # Data matrix of 2D landmark coordinates
-data("Tropheus")
-PHEN <- as.matrix(Tropheus[which(names(Tropheus) == "X1"):which(names(Tropheus) == "Y19")])
+data("Tropheus.IK.coord")
+coords <- which(names(Tropheus.IK.coord) == "X1"):which(names(Tropheus.IK.coord) == "Y19")
+proc.coord <- as.matrix(Tropheus.IK.coord[coords])
 
-# Procrustes superimposition
-library("geomorph")
-PHEN_array <- arrayspecs(PHEN, p = 19, k = 2)
-phen.gpa <- gpagen(PHEN_array, print.progress = FALSE)
-proc.coord <- two.d.array(phen.gpa$coords)
+# Pooled within-group covariance matrix for all populations (weighted by sample size)
+W <- cov.W(proc.coord, groups = Tropheus.IK.coord$POP.ID, weighted = TRUE)
 
-# Within-group covariance matrix for all populations
-W <- cov.W(proc.coord, groups = Tropheus$POP.ID)
+# Pooled within-group covariance matrix for all populations (unweighted)
+W <- cov.W(proc.coord, groups = Tropheus.IK.coord$POP.ID)
 
 # Within-group covariance matrix for all populations, pooled by sex
-W.mf <- cov.W(proc.coord, groups = Tropheus$POP.ID, sex = Tropheus$Sex)
+W.mf <- cov.W(proc.coord, groups = Tropheus.IK.coord$POP.ID, sex = Tropheus.IK.coord$Sex)
 
 }
 \seealso{
-\code{\link[stats]{cov}}
+\code{\link[stats:cor]{cov}}
 }

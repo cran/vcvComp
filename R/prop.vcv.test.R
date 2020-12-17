@@ -14,7 +14,7 @@
 #'
 #' @seealso \code{\link{relative.eigen}} for the computation of relative eigenvalues,
 #' @seealso \code{\link{minv}} for the method and the parameter used for the matrix inversion,
-#' @seealso \code{\link[stats]{pchisq}} for Chi-squared distribution
+#' @seealso \code{\link[stats:Chisquare]{pchisq}} for Chi-squared distribution
 #'
 #' @references Mardia KV, Kent JT, Bibby JM (1979)
 #' \emph{Multivariate analysis}. Academic Press, London.
@@ -22,21 +22,16 @@
 #' @examples
 #'
 #' # Data matrix of 2D landmark coordinates
-#' data("Tropheus")
-#' PHEN <- as.matrix(Tropheus[which(names(Tropheus) == "X1"):which(names(Tropheus) == "Y19")])
-#'
-#' # Procrustes superimposition
-#' library("geomorph")
-#' PHEN_array <- arrayspecs(PHEN, p = 19, k = 2)
-#' phen.gpa <- gpagen(PHEN_array, print.progress = FALSE)
-#' proc.coord <- two.d.array(phen.gpa$coords)
+#' data("Tropheus.IK.coord")
+#' coords <- which(names(Tropheus.IK.coord) == "X1"):which(names(Tropheus.IK.coord) == "Y19")
+#' proc.coord <- as.matrix(Tropheus.IK.coord[coords])
 #'
 #' # Data reduction
 #' phen.pca <- prcomp(proc.coord, rank. = 5, tol = sqrt(.Machine$double.eps))
 #' pc.scores <- phen.pca$x
 #'
 #' # Covariance matrix of each population
-#' S.phen.pop <- cov.group(pc.scores, groups = Tropheus$POP.ID)
+#' S.phen.pop <- cov.group(pc.scores, groups = Tropheus.IK.coord$POP.ID)
 #'
 #' # Maximum likelihood test of proportionality between 2 covariance matrices
 #' # (IKA1 relative to IKS5) - 71 and 75 are the sample sizes

@@ -20,21 +20,16 @@ Tests the difference between two successive relative eigenvalues
 \examples{
 
 # Data matrix of 2D landmark coordinates
-data("Tropheus")
-PHEN <- as.matrix(Tropheus[which(names(Tropheus) == "X1"):which(names(Tropheus) == "Y19")])
-
-# Procrustes superimposition
-library("geomorph")
-PHEN_array <- arrayspecs(PHEN, p = 19, k = 2)
-phen.gpa <- gpagen(PHEN_array, print.progress = FALSE)
-proc.coord <- two.d.array(phen.gpa$coords)
+data("Tropheus.IK.coord")
+coords <- which(names(Tropheus.IK.coord) == "X1"):which(names(Tropheus.IK.coord) == "Y19")
+proc.coord <- as.matrix(Tropheus.IK.coord[coords])
 
 # Data reduction
 phen.pca <- prcomp(proc.coord, rank. = 5, tol = sqrt(.Machine$double.eps))
 pc.scores <- phen.pca$x
 
 # Covariance matrix of each population
-S.phen.pop <- cov.group(pc.scores, groups = Tropheus$POP.ID)
+S.phen.pop <- cov.group(pc.scores, groups = Tropheus.IK.coord$POP.ID)
 
 # Relative PCA = relative eigenanalysis between 2 covariance matrices
 # (population IKA1 relative to IKS5)
@@ -42,7 +37,9 @@ relEigen.a1s5 <- relative.eigen(S.phen.pop[, , "IKA1"], S.phen.pop[, , "IKS5"])
 
 # Test of the difference between 2 successives eigenvalues
 # of the covariance matrix of IKA1 relative to IKS5
-eigen.test(n = c(71, 75), relValues = relEigen.a1s5$relValues)  # 71 and 75 are the sample sizes
+n_ika1 <- length(which(Tropheus.IK.coord$POP.ID == "IKA1"))  # sample size for IKA1
+n_iks5 <- length(which(Tropheus.IK.coord$POP.ID == "IKS5"))  # sample size for IKS5
+eigen.test(n = c(n_ika1, n_iks5), relValues = relEigen.a1s5$relValues)
 
 }
 \references{
@@ -52,5 +49,5 @@ Mardia KV, Kent JT, Bibby JM (1979)
 \seealso{
 \code{\link{relative.eigen}} for the computation of relative eigenvalues,
 
-\code{\link[stats]{pchisq}} for Chi-squared distribution
+\code{\link[stats:Chisquare]{pchisq}} for Chi-squared distribution
 }

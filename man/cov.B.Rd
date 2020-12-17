@@ -29,22 +29,17 @@ the average of the mean of males and the mean of females.
 \examples{
 
 # Data matrix of 2D landmark coordinates
-data("Tropheus")
-PHEN <- as.matrix(Tropheus[which(names(Tropheus) == "X1"):which(names(Tropheus) == "Y19")])
-
-# Procrustes superimposition
-library("geomorph")
-PHEN_array <- arrayspecs(PHEN, p = 19, k = 2)
-phen.gpa <- gpagen(PHEN_array, print.progress = FALSE)
-proc.coord <- two.d.array(phen.gpa$coords)
+data("Tropheus.IK.coord")
+coords <- which(names(Tropheus.IK.coord) == "X1"):which(names(Tropheus.IK.coord) == "Y19")
+proc.coord <- as.matrix(Tropheus.IK.coord[coords])
 
 # Between-group covariance matrix for all populations
-B <- cov.B(proc.coord, groups = Tropheus$POP.ID)
+B <- cov.B(proc.coord, groups = Tropheus.IK.coord$POP.ID)
 
 # Between-group covariance matrix for all populations, pooled by sex
-B.mf <- cov.B(proc.coord, groups = Tropheus$POP.ID, sex = Tropheus$Sex)
+B.mf <- cov.B(proc.coord, groups = Tropheus.IK.coord$POP.ID, sex = Tropheus.IK.coord$Sex)
 
 }
 \seealso{
-\code{\link[stats]{cov}}, \code{\link[stats]{cov.wt}}
+\code{\link[stats:cor]{cov}}, \code{\link[stats]{cov.wt}}
 }
